@@ -232,7 +232,7 @@ LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPr
     const RectF geo(w->frameGeometry());
     for (int corner = 0; corner < LSHelper::NTex; ++corner)
     {
-        Region reg = *m_helper->m_maskRegions[corner];
+        Region reg(m_helper->m_maskRegions[corner]->boundingRect());
         switch(corner) {
             case LSHelper::TopLeft:
                 reg.translate(geo.x()-m_shadowOffset, geo.y()-m_shadowOffset);
@@ -280,17 +280,13 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
         return;
     }
 
-    LogicalOutput*s = w->screen();
-    if (effects->waylandDisplay() == nullptr) {
-        s = nullptr;
-    }
-
     RectF geo(w->frameGeometry());
     RectF exp_geo(w->expandedGeometry());
     RectF contents_geo(w->contentsRect());
 
-    const RectF geo_scaled = scale(geo, m_screens[s].scale);
-    const RectF exp_geo_scaled = scale(exp_geo, m_screens[s].scale);
+    const qreal scaleFactor = viewport.scale();
+    const RectF geo_scaled = scale(geo, scaleFactor);
+    const RectF exp_geo_scaled = scale(exp_geo, scaleFactor);
 
     //Draw rounded corners with shadows
     const int frameSizeLocation = m_shader->uniformLocation("frame_size");
@@ -313,12 +309,12 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
     m_shader->setUniform(frameSizeLocation, QVector2D(geo_scaled.width(), geo_scaled.height()));
     m_shader->setUniform(expandedSizeLocation, QVector2D(exp_geo_scaled.width(), exp_geo_scaled.height()));
     m_shader->setUniform(shadowSizeLocation, QVector3D(geo_scaled.x() - exp_geo_scaled.x(), geo_scaled.y()-exp_geo_scaled.y(), exp_geo_scaled.height() - geo_scaled.height() - geo_scaled.y() + exp_geo_scaled.y() ));
-    m_shader->setUniform(radiusLocation, m_screens[s].sizeScaled);
-    m_shader->setUniform(shadowOffsetLocation, float(m_shadowOffset*m_screens[s].scale));
+    m_shader->setUniform(radiusLocation, float(m_size * scaleFactor));
+    m_shader->setUniform(shadowOffsetLocation, float(m_shadowOffset * scaleFactor));
     m_shader->setUniform(innerOutlineColorLocation, QVector4D(m_innerOutlineColor.red()/255.0,m_innerOutlineColor.green()/255.0,m_innerOutlineColor.blue()/255.0,m_innerOutlineColor.alpha()/255.0));
     m_shader->setUniform(outerOutlineColorLocation, QVector4D(m_outerOutlineColor.red()/255.0,m_outerOutlineColor.green()/255.0,m_outerOutlineColor.blue()/255.0,m_outerOutlineColor.alpha()/255.0));
-    m_shader->setUniform(innerOutlineWidthLocation, float(m_innerOutlineWidth*m_screens[s].scale));
-    m_shader->setUniform(outerOutlineWidthLocation, float(m_outerOutlineWidth*m_screens[s].scale));
+    m_shader->setUniform(innerOutlineWidthLocation, float(m_innerOutlineWidth * scaleFactor));
+    m_shader->setUniform(outerOutlineWidthLocation, float(m_outerOutlineWidth * scaleFactor));
     m_shader->setUniform(drawInnerOutlineLocation, m_innerOutline);
     m_shader->setUniform(drawOuterOutlineLocation, m_outerOutline);
     m_shader->setUniform(squircleRatioLocation, m_squircleRatio);
