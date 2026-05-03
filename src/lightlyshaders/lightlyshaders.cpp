@@ -30,6 +30,7 @@
 #include <opengl/eglcontext.h>
 #include <effect/effect.h>
 #include <core/renderviewport.h>
+#include <scene/scene.h>
 #include <QMatrix4x4>
 #include <KConfigGroup>
 #include <QRegularExpression>
@@ -228,15 +229,10 @@ LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPr
         return;
     }
 
-    LogicalOutput *s = w->screen();
-    if (effects->waylandDisplay() == nullptr) {
-        s = nullptr;
-    }
-
     const RectF geo(w->frameGeometry());
     for (int corner = 0; corner < LSHelper::NTex; ++corner)
     {
-        Region reg = Region(scale(m_helper->m_maskRegions[corner]->boundingRect(), m_screens[s].scale).toRect());
+        Region reg = *m_helper->m_maskRegions[corner];
         switch(corner) {
             case LSHelper::TopLeft:
                 reg.translate(geo.x()-m_shadowOffset, geo.y()-m_shadowOffset);
@@ -254,7 +250,7 @@ LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPr
                 break;
         }
 
-        data.deviceOpaque -= reg;
+        data.deviceOpaque -= view->mapToDeviceCoordinatesAligned(reg);
     }
 
     effects->prePaintWindow(view, w, data, time);
