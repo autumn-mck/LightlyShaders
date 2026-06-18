@@ -66,7 +66,7 @@ LightlyShadersEffect::LightlyShadersEffect() : OffscreenEffect()
         return;
     }
 
-    if (m_shader->isValid())
+    if (m_shader)
     {
         const auto stackingOrder = effects->stackingOrder();
         for (EffectWindow *window : stackingOrder) {
@@ -221,45 +221,23 @@ LightlyShadersEffect::paintScreen(const RenderTarget &renderTarget, const Render
 }
 
 void
-LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPrePaintData &data, std::chrono::milliseconds time)
+LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPrePaintData &data)
 {
     if (!isValidWindow(w) )
     {
-        effects->prePaintWindow(view, w, data, time);
+        effects->prePaintWindow(view, w, data);
         return;
     }
 
-    const RectF geo(w->frameGeometry());
-    for (int corner = 0; corner < LSHelper::NTex; ++corner)
-    {
-        Region reg(m_helper->m_maskRegions[corner]->boundingRect());
-        switch(corner) {
-            case LSHelper::TopLeft:
-                reg.translate(geo.x()-m_shadowOffset, geo.y()-m_shadowOffset);
-                break;
-            case LSHelper::TopRight:
-                reg.translate(geo.x() + geo.width() - m_size, geo.y()-m_shadowOffset);
-                break;
-            case LSHelper::BottomRight:
-                reg.translate(geo.x() + geo.width() - m_size-1, geo.y()+geo.height()-m_size-1);
-                break;
-            case LSHelper::BottomLeft:
-                reg.translate(geo.x()-m_shadowOffset+1, geo.y()+geo.height()-m_size-1);
-                break;
-            default:
-                break;
-        }
+    data.setTranslucent();
 
-        data.deviceOpaque -= view->mapToDeviceCoordinatesAligned(reg);
-    }
-
-    effects->prePaintWindow(view, w, data, time);
+    effects->prePaintWindow(view, w, data);
 }
 
 bool
 LightlyShadersEffect::isValidWindow(EffectWindow *w)
 {
-    if (!m_shader->isValid()
+    if (!m_shader
             || !m_windows[w].isManaged
             || m_windows[w].skipEffect
         )

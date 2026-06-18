@@ -127,6 +127,41 @@ LSHelper::roundBlurRegion(EffectWindow *w, Region *blur_region)
     *blur_region = blur_region->subtracted(bottom_left);
 }
 
+void
+LSHelper::roundBlurRegion(EffectWindow *w, RegionF *blur_region)
+{
+    if (blur_region->isEmpty()) {
+        return;
+    }
+
+    if (!m_managed.contains(w)) {
+        return;
+    }
+
+    const RectF geo(w->frameGeometry());
+
+    RectF maximized_area = effects->clientArea(MaximizeArea, w);
+    if (maximized_area == geo && m_disabledForMaximized) {
+        return;
+    }
+
+    Region top_left = *m_maskRegions[TopLeft];
+    top_left.translate(0 - m_shadowOffset + 1, 0 - m_shadowOffset + 1);
+    *blur_region = *blur_region - RegionF(top_left);
+
+    Region top_right = *m_maskRegions[TopRight];
+    top_right.translate(geo.width() - m_size - 1, 0 - m_shadowOffset + 1);
+    *blur_region = *blur_region - RegionF(top_right);
+
+    Region bottom_right = *m_maskRegions[BottomRight];
+    bottom_right.translate(geo.width() - m_size - 1, geo.height() - m_size - 1);
+    *blur_region = *blur_region - RegionF(bottom_right);
+
+    Region bottom_left = *m_maskRegions[BottomLeft];
+    bottom_left.translate(0 - m_shadowOffset + 1, geo.height() - m_size - 1);
+    *blur_region = *blur_region - RegionF(bottom_left);
+}
+
 QPainterPath
 LSHelper::superellipse(float size, int n, int translate)
 {
