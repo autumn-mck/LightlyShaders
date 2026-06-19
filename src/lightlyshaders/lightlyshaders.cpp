@@ -20,7 +20,6 @@
 #include "lightlyshaders.h"
 #include "lightlyshaders_config.h"
 #include <opengl/glutils.h>
-#include <opengl/eglcontext.h>
 #include <effect/effect.h>
 #include <core/renderviewport.h>
 #include <scene/scene.h>
@@ -54,20 +53,15 @@ LightlyShadersEffect::LightlyShadersEffect() : OffscreenEffect()
         return;
     }
 
-    if (m_shader)
-    {
-        const auto stackingOrder = effects->stackingOrder();
-        for (EffectWindow *window : stackingOrder) {
-            windowAdded(window);
-        }
-
-        connect(effects, &EffectsHandler::windowAdded, this, &LightlyShadersEffect::windowAdded);
-        connect(effects, &EffectsHandler::windowDeleted, this, &LightlyShadersEffect::windowDeleted);
-
-        qCWarning(LIGHTLYSHADERS) << "LightlyShaders loaded.";
+    const auto stackingOrder = effects->stackingOrder();
+    for (EffectWindow *window : stackingOrder) {
+        windowAdded(window);
     }
-    else
-        qCWarning(LIGHTLYSHADERS) << "LightlyShaders: no valid shaders found! LightlyShaders will not work.";
+
+    connect(effects, &EffectsHandler::windowAdded, this, &LightlyShadersEffect::windowAdded);
+    connect(effects, &EffectsHandler::windowDeleted, this, &LightlyShadersEffect::windowDeleted);
+
+    qCWarning(LIGHTLYSHADERS) << "LightlyShaders loaded.";
 }
 
 LightlyShadersEffect::~LightlyShadersEffect()
