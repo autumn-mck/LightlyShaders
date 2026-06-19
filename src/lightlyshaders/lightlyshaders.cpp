@@ -19,23 +19,11 @@
 
 #include "lightlyshaders.h"
 #include "lightlyshaders_config.h"
-#include <QPainter>
-#include <QPainterPath>
-#include <QImage>
-#include <QFile>
-#include <QTextStream>
-#include <QStandardPaths>
-#include <QWindow>
 #include <opengl/glutils.h>
 #include <opengl/eglcontext.h>
 #include <effect/effect.h>
 #include <core/renderviewport.h>
 #include <scene/scene.h>
-#include <QMatrix4x4>
-#include <KConfigGroup>
-#include <QRegularExpression>
-#include <QBitmap>
-#include <KWindowEffects>
 
 Q_LOGGING_CATEGORY(LIGHTLYSHADERS, "kwin_effect_lightlyshaders", QtWarningMsg)
 
@@ -56,7 +44,7 @@ LightlyShadersEffect::LightlyShadersEffect() : OffscreenEffect()
 {
     ensureResources();
 
-    m_helper = new LSHelper();
+    m_helper = std::make_unique<LSHelper>();
     reconfigure(ReconfigureAll);
 
     m_shader = std::unique_ptr<GLShader>(ShaderManager::instance()->generateShaderFromFile(ShaderTrait::MapTexture, QStringLiteral(""), QStringLiteral(":/effects/lightlyshaders/shaders/lightlyshaders.frag")));
@@ -96,13 +84,12 @@ LightlyShadersEffect::windowDeleted(EffectWindow *w)
 void
 LightlyShadersEffect::windowAdded(EffectWindow *w)
 {
-    m_windows[w].isManaged = false;
-
     if(!m_helper->isManagedWindow(w))
         return;
 
-    m_windows[w].isManaged = true;
-    m_windows[w].skipEffect = false;
+    LSWindowStruct &window = m_windows[w];
+    window.isManaged = true;
+    window.skipEffect = false;
 
     connect(w, &EffectWindow::windowMaximizedStateChanged,
             this, &LightlyShadersEffect::windowMaximizedStateChanged);
@@ -111,7 +98,7 @@ LightlyShadersEffect::windowAdded(EffectWindow *w)
 
     RectF maximized_area = effects->clientArea(MaximizeArea, w);
     if (maximized_area == w->frameGeometry() && m_disabledForMaximized)
-        m_windows[w].skipEffect = true;
+        window.skipEffect = true;
 
     redirect(w);
     setShader(w, m_shader.get());
@@ -120,10 +107,15 @@ LightlyShadersEffect::windowAdded(EffectWindow *w)
 void
 LightlyShadersEffect::windowFullScreenChanged(EffectWindow *w)
 {
+    auto it = m_windows.find(w);
+    if (it == m_windows.end()) {
+        return;
+    }
+
     if(w->isFullScreen()) {
-        m_windows[w].isManaged = false;
+        it.value().isManaged = false;
     } else {
-        m_windows[w].isManaged = true;
+        it.value().isManaged = true;
     }
 }
 
@@ -132,19 +124,22 @@ LightlyShadersEffect::windowMaximizedStateChanged(EffectWindow *w, bool horizont
 {
     if (!m_disabledForMaximized) return;
 
+    auto it = m_windows.find(w);
+    if (it == m_windows.end()) {
+        return;
+    }
+
     if ((horizontal == true) && (vertical == true)) {
-        m_windows[w].skipEffect = true;
+        it.value().skipEffect = true;
     } else {
-        m_windows[w].skipEffect = false;
+        it.value().skipEffect = false;
     }
 }
 
 void
-LightlyShadersEffect::setRoundness(const int r, LogicalOutput*s)
+LightlyShadersEffect::setRoundness(const int r)
 {
     m_size = r;
-    m_screens[s].sizeScaled = float(r)*m_screens[s].scale;
-    m_corner = QSize(m_size+(m_shadowOffset-1), m_size+(m_shadowOffset-1));
 }
 
 void
@@ -179,18 +174,7 @@ LightlyShadersEffect::reconfigure(ReconfigureFlags flags)
         m_outerOutlineWidth = 0.0;
     }
 
-    const auto screens = effects->screens();
-    for(LogicalOutput *s : screens)
-    {
-        if (effects->waylandDisplay() == nullptr) {
-            s = nullptr;
-        }
-        setRoundness(m_roundness, s);
-
-        if (effects->waylandDisplay() == nullptr) {
-            break;
-        }
-    }
+    setRoundness(m_roundness);
 
     effects->addRepaintFull();
 }
@@ -213,7 +197,7 @@ LightlyShadersEffect::paintScreen(const RenderTarget &renderTarget, const Render
     }
 
     if(set_roundness) {
-        setRoundness(m_roundness, s);
+        setRoundness(m_roundness);
         m_helper->reconfigure();
     }
 
@@ -237,14 +221,16 @@ LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPr
 bool
 LightlyShadersEffect::isValidWindow(EffectWindow *w)
 {
-    if (!m_shader
-            || !m_windows[w].isManaged
-            || m_windows[w].skipEffect
-        )
-    {
+    if (!m_shader) {
         return false;
     }
-    return true;
+
+    auto it = m_windows.constFind(w);
+    if (it == m_windows.constEnd()) {
+        return false;
+    }
+
+    return it.value().isManaged && !it.value().skipEffect;
 }
 
 void
@@ -260,7 +246,6 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
 
     RectF geo(w->frameGeometry());
     RectF exp_geo(w->expandedGeometry());
-    RectF contents_geo(w->contentsRect());
 
     const qreal scaleFactor = viewport.scale();
     const RectF geo_scaled = scale(geo, scaleFactor);

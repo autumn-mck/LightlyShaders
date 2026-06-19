@@ -12,21 +12,10 @@ namespace KWin {
 
 LSHelper::LSHelper() : QObject()
 {
-    for (int i = 0; i < NTex; ++i)
-    {
-        m_maskRegions[i] = 0;
-    }
 }
 
 LSHelper::~LSHelper()
 {
-    //delete mask regions
-    for (int i = 0; i < NTex; ++i)
-    {
-        if (m_maskRegions[i])
-            delete m_maskRegions[i];
-    }
-
     m_managed.clear();
 }
 
@@ -66,7 +55,7 @@ LSHelper::setMaskRegions()
     m_maskRegions[BottomLeft] = createMaskRegion(img, size, BottomLeft);
 }
 
-Region *
+std::unique_ptr<Region>
 LSHelper::createMaskRegion(QImage img, int size, int corner)
 {
     QImage img_copy;
@@ -89,7 +78,7 @@ LSHelper::createMaskRegion(QImage img, int size, int corner)
     img_copy = img_copy.createMaskFromColor(QColor(Qt::black).rgb(), Qt::MaskOutColor);
     QBitmap bitmap = QBitmap::fromImage(img_copy, Qt::DiffuseAlphaDither);
 
-    return new Region(bitmap);
+    return std::make_unique<Region>(bitmap);
 }
 
 void 

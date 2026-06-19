@@ -25,6 +25,8 @@
 
 #include "lshelper.h"
 
+#include <memory>
+
 namespace KWin {
 
 class GLTexture;
@@ -39,7 +41,7 @@ public:
     static bool supported();
     static bool enabledByDefault();
 
-    void setRoundness(const int r, LogicalOutput *s);
+    void setRoundness(const int r);
 
     void reconfigure(ReconfigureFlags flags) override;
     void paintScreen(const RenderTarget &renderTarget, const RenderViewport &viewport, int mask, const Region &deviceRegion, LogicalOutput *s) override;
@@ -66,22 +68,18 @@ private:
     {
         bool configured=false;
         qreal scale=1.0;
-        float sizeScaled;
     };
 
     bool isValidWindow(EffectWindow *w);
 
-    void fillRegion(const QRegion &reg, const QColor &c);
     RectF scale(const RectF rect, qreal scaleFactor);
 
-    LSHelper *m_helper;
+    std::unique_ptr<LSHelper> m_helper;
 
     int m_size, m_innerOutlineWidth, m_outerOutlineWidth, m_roundness, m_shadowOffset, m_squircleRatio, m_cornersType;
-    bool m_innerOutline, m_outerOutline, m_darkTheme, m_disabledForMaximized;
+    bool m_innerOutline, m_outerOutline, m_disabledForMaximized;
     QColor m_innerOutlineColor, m_outerOutlineColor;
     std::unique_ptr<GLShader> m_shader;
-    QSize m_corner;
-
     std::unordered_map<LogicalOutput *, LSScreenStruct> m_screens;
     QMap<EffectWindow *, LSWindowStruct> m_windows;
 };
