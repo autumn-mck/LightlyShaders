@@ -1,6 +1,26 @@
 {
     "KPlugin": {
         "Category": "Appearance",
+
+        "Authors": [
+            {
+                "Name": "KWin development team"
+            },
+            {
+                "Email": "therealestrob@gmail.com",
+                "Name": "Rob"
+            },
+            {
+                "Name": "Luwx"
+            },
+            {
+                "Name": "Parhom"
+            },
+            {
+                "Name": "Autumn"
+            }
+        ],
+
         "Description": "Blurs the background behind semi-transparent windows",
         "Description[ar]": "تغشي الخلفية خلف النوافذ شبه الشفافة",
         "Description[az]": "Yarımşəffaf pəncərələrin altındakı fonu yayğınlaşdırmaq",
