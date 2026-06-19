@@ -19,7 +19,6 @@ public Q_SLOTS:
     void updateChanged();
 
 private:
-    void setChanged(bool value);
     Ui::LightlyShadersKCM ui;
 };
 

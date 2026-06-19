@@ -3,8 +3,6 @@
 #include "kwineffects_interface.h"
 
 #include <QDBusConnection>
-#include <QDBusMessage>
-#include <QDBusArgument>
 
 #include <KPluginFactory>
 
