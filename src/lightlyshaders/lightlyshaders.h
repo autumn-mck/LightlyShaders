@@ -44,7 +44,6 @@ public:
     void setRoundness(const int r);
 
     void reconfigure(ReconfigureFlags flags) override;
-    bool paintScreen(const RenderTarget &renderTarget, const RenderViewport &viewport, int mask, const Region &deviceRegion, LogicalOutput *s) override;
     void prePaintWindow(RenderView *view, EffectWindow* w, WindowPrePaintData& data) override;
     bool drawWindow(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow* w, int mask, const Region& deviceRegion, WindowPaintData& data) override;
     virtual int requestedEffectChainPosition() const override { return 99; }
@@ -64,10 +63,21 @@ private:
         bool isManaged;
     };
 
-    struct LSScreenStruct
+    struct LSShaderLocations
     {
-        bool configured=false;
-        qreal scale=1.0;
+        int frameSize;
+        int expandedSize;
+        int shadowSize;
+        int radius;
+        int shadowOffset;
+        int innerOutlineColor;
+        int outerOutlineColor;
+        int innerOutlineWidth;
+        int outerOutlineWidth;
+        int drawInnerOutline;
+        int drawOuterOutline;
+        int squircleRatio;
+        int isSquircle;
     };
 
     bool isValidWindow(EffectWindow *w);
@@ -80,7 +90,7 @@ private:
     bool m_innerOutline, m_outerOutline, m_disabledForMaximized;
     QColor m_innerOutlineColor, m_outerOutlineColor;
     std::unique_ptr<GLShader> m_shader;
-    std::unordered_map<LogicalOutput *, LSScreenStruct> m_screens;
+    LSShaderLocations m_locations;
     QMap<EffectWindow *, LSWindowStruct> m_windows;
 };
 

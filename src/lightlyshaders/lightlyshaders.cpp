@@ -53,6 +53,20 @@ LightlyShadersEffect::LightlyShadersEffect() : OffscreenEffect()
         return;
     }
 
+    m_locations.frameSize = m_shader->uniformLocation("frame_size");
+    m_locations.expandedSize = m_shader->uniformLocation("expanded_size");
+    m_locations.shadowSize = m_shader->uniformLocation("shadow_size");
+    m_locations.radius = m_shader->uniformLocation("radius");
+    m_locations.shadowOffset = m_shader->uniformLocation("shadow_sample_offset");
+    m_locations.innerOutlineColor = m_shader->uniformLocation("inner_outline_color");
+    m_locations.outerOutlineColor = m_shader->uniformLocation("outer_outline_color");
+    m_locations.innerOutlineWidth = m_shader->uniformLocation("inner_outline_width");
+    m_locations.outerOutlineWidth = m_shader->uniformLocation("outer_outline_width");
+    m_locations.drawInnerOutline = m_shader->uniformLocation("draw_inner_outline");
+    m_locations.drawOuterOutline = m_shader->uniformLocation("draw_outer_outline");
+    m_locations.squircleRatio = m_shader->uniformLocation("squircle_ratio");
+    m_locations.isSquircle = m_shader->uniformLocation("is_squircle");
+
     const auto stackingOrder = effects->stackingOrder();
     for (EffectWindow *window : stackingOrder) {
         windowAdded(window);
@@ -173,31 +187,6 @@ LightlyShadersEffect::reconfigure(ReconfigureFlags flags)
     effects->addRepaintFull();
 }
 
-bool
-LightlyShadersEffect::paintScreen(const RenderTarget &renderTarget, const RenderViewport &viewport, int mask, const Region &deviceRegion, LogicalOutput *s)
-{
-    bool set_roundness = false;
-
-    if (!m_screens[s].configured) {
-        m_screens[s].configured = true;
-        set_roundness = true;
-    }
-
-    qreal scale = viewport.scale();
-
-    if(scale != m_screens[s].scale) {
-        m_screens[s].scale = scale;
-        set_roundness = true;
-    }
-
-    if(set_roundness) {
-        setRoundness(m_roundness);
-        m_helper->reconfigure();
-    }
-
-    return effects->paintScreen(renderTarget, viewport, mask, deviceRegion, s);
-}
-
 void
 LightlyShadersEffect::prePaintWindow(RenderView *view, EffectWindow *w, WindowPrePaintData &data)
 {
@@ -245,36 +234,23 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
     const RectF exp_geo_scaled = scale(exp_geo, scaleFactor);
 
     //Draw rounded corners with shadows
-    const int frameSizeLocation = m_shader->uniformLocation("frame_size");
-    const int expandedSizeLocation = m_shader->uniformLocation("expanded_size");
-    const int shadowSizeLocation = m_shader->uniformLocation("shadow_size");
-    const int radiusLocation = m_shader->uniformLocation("radius");
-    const int shadowOffsetLocation = m_shader->uniformLocation("shadow_sample_offset");
-    const int innerOutlineColorLocation = m_shader->uniformLocation("inner_outline_color");
-    const int outerOutlineColorLocation = m_shader->uniformLocation("outer_outline_color");
-    const int innerOutlineWidthLocation = m_shader->uniformLocation("inner_outline_width");
-    const int outerOutlineWidthLocation = m_shader->uniformLocation("outer_outline_width");
-    const int drawInnerOutlineLocation = m_shader->uniformLocation("draw_inner_outline");
-    const int drawOuterOutlineLocation = m_shader->uniformLocation("draw_outer_outline");
-    const int squircleRatioLocation = m_shader->uniformLocation("squircle_ratio");
-    const int isSquircleLocation = m_shader->uniformLocation("is_squircle");
     ShaderManager *sm = ShaderManager::instance();
     sm->pushShader(m_shader.get());
 
     //qCWarning(LIGHTLYSHADERS) << geo_scaled.width() << geo_scaled.height();
-    m_shader->setUniform(frameSizeLocation, QVector2D(geo_scaled.width(), geo_scaled.height()));
-    m_shader->setUniform(expandedSizeLocation, QVector2D(exp_geo_scaled.width(), exp_geo_scaled.height()));
-    m_shader->setUniform(shadowSizeLocation, QVector3D(geo_scaled.x() - exp_geo_scaled.x(), geo_scaled.y()-exp_geo_scaled.y(), geo_scaled.y() - exp_geo_scaled.y() ));
-    m_shader->setUniform(radiusLocation, float(m_size * scaleFactor));
-    m_shader->setUniform(shadowOffsetLocation, float(m_shadowOffset * scaleFactor));
-    m_shader->setUniform(innerOutlineColorLocation, QVector4D(m_innerOutlineColor.red()/255.0,m_innerOutlineColor.green()/255.0,m_innerOutlineColor.blue()/255.0,m_innerOutlineColor.alpha()/255.0));
-    m_shader->setUniform(outerOutlineColorLocation, QVector4D(m_outerOutlineColor.red()/255.0,m_outerOutlineColor.green()/255.0,m_outerOutlineColor.blue()/255.0,m_outerOutlineColor.alpha()/255.0));
-    m_shader->setUniform(innerOutlineWidthLocation, float(m_innerOutlineWidth * scaleFactor));
-    m_shader->setUniform(outerOutlineWidthLocation, float(m_outerOutlineWidth * scaleFactor));
-    m_shader->setUniform(drawInnerOutlineLocation, m_innerOutline);
-    m_shader->setUniform(drawOuterOutlineLocation, m_outerOutline);
-    m_shader->setUniform(squircleRatioLocation, m_squircleRatio);
-    m_shader->setUniform(isSquircleLocation, (m_cornersType == LSHelper::SquircledCorners));
+    m_shader->setUniform(m_locations.frameSize, QVector2D(geo_scaled.width(), geo_scaled.height()));
+    m_shader->setUniform(m_locations.expandedSize, QVector2D(exp_geo_scaled.width(), exp_geo_scaled.height()));
+    m_shader->setUniform(m_locations.shadowSize, QVector3D(geo_scaled.x() - exp_geo_scaled.x(), geo_scaled.y()-exp_geo_scaled.y(), geo_scaled.y() - exp_geo_scaled.y() ));
+    m_shader->setUniform(m_locations.radius, float(m_size * scaleFactor));
+    m_shader->setUniform(m_locations.shadowOffset, float(m_shadowOffset * scaleFactor));
+    m_shader->setUniform(m_locations.innerOutlineColor, QVector4D(m_innerOutlineColor.red()/255.0,m_innerOutlineColor.green()/255.0,m_innerOutlineColor.blue()/255.0,m_innerOutlineColor.alpha()/255.0));
+    m_shader->setUniform(m_locations.outerOutlineColor, QVector4D(m_outerOutlineColor.red()/255.0,m_outerOutlineColor.green()/255.0,m_outerOutlineColor.blue()/255.0,m_outerOutlineColor.alpha()/255.0));
+    m_shader->setUniform(m_locations.innerOutlineWidth, float(m_innerOutlineWidth * scaleFactor));
+    m_shader->setUniform(m_locations.outerOutlineWidth, float(m_outerOutlineWidth * scaleFactor));
+    m_shader->setUniform(m_locations.drawInnerOutline, m_innerOutline);
+    m_shader->setUniform(m_locations.drawOuterOutline, m_outerOutline);
+    m_shader->setUniform(m_locations.squircleRatio, m_squircleRatio);
+    m_shader->setUniform(m_locations.isSquircle, (m_cornersType == LSHelper::SquircledCorners));
 
     glActiveTexture(GL_TEXTURE0);
 
