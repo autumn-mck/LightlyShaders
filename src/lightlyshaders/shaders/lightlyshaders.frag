@@ -68,6 +68,18 @@ vec4 shapeWindow(vec4 tex, vec2 p, vec2 center, float clip_radius)
     return vec4(tex.rgb*alpha, min(alpha, tex.a));
 }
 
+float cornerBounds(vec2 p, vec2 center, float clip_radius)
+{
+    if(is_squircle) {
+        return squircleBounds(p, center, clip_radius);
+    }
+    return circleBounds(p, center, clip_radius);
+}
+
+//Corner of a window with shadow, including its outlines.
+//The outer outline is laid under the window and the window is blended over it, instead of
+//blending window->shadow and then outline->result, which lets the background leak through
+//antialiased edge pixels.
 vec4 shapeShadowWindow(vec2 start, vec4 tex, vec2 p, vec2 center, float clip_radius)
 {
     vec2 ShadowHorCoord = vec2(texcoord0.x, start.y);
@@ -77,22 +89,22 @@ vec4 shapeShadowWindow(vec2 start, vec4 tex, vec2 p, vec2 center, float clip_rad
     vec4 texShadowVerCur = texture(sampler, ShadowVerCoord);
     vec4 texShadow0 = texture(sampler, start);
 
-    vec4 texShadow = texShadowHorCur + (texShadowVerCur - texShadow0);
+    vec4 outColor = texShadowHorCur + (texShadowVerCur - texShadow0);
 
-    float alpha;
-    if(is_squircle) {
-        alpha = squircleBounds(p, center, clip_radius);
-    } else {
-        alpha = circleBounds(p, center, clip_radius);
+    if(draw_outer_outline) {
+        float outer_alpha = cornerBounds(p, center, clip_radius + outer_outline_width);
+        outColor = mix(outColor, vec4(outer_outline_color.rgb, 1.0), outer_alpha * outer_outline_color.a);
     }
 
-    if(alpha == 0.0) {
-        return texShadow;
-    } else if(alpha < 1.0) {
-        return mix(vec4(tex.rgb*alpha, min(alpha, tex.a)), texShadow, 1.0-alpha);
-    } else {
-        return tex;
+    float alpha = cornerBounds(p, center, clip_radius);
+    outColor = mix(outColor, tex, alpha);
+
+    if(draw_inner_outline) {
+        float inner_alpha = alpha - cornerBounds(p, center, clip_radius - inner_outline_width);
+        outColor = mix(outColor, vec4(inner_outline_color.rgb, 1.0), inner_alpha * inner_outline_color.a);
     }
+
+    return outColor;
 }
 
 vec4 cornerOutline(vec4 outColor, bool inner, vec2 coord0, float radius, vec2 center, float outline_width, bool invert)
@@ -284,30 +296,12 @@ void main()
                 start_y = (shadow_size.z + frame_size.y + f_shadow_sample_offset)/expanded_size.y;
                 
                 outColor = shapeShadowWindow(vec2(start_x, start_y), tex, coord0, vec2(f_radius + shadow_size.x, frame_size.y + shadow_size.z - f_radius), f_radius);
-
-                //Inner outline
-                if(draw_inner_outline) {
-                    outColor = cornerOutline(outColor, true, coord0, f_radius, vec2(f_radius + shadow_size.x, frame_size.y + shadow_size.z - f_radius), inner_outline_width, false);
-                }
-                //Outer outline
-                if(draw_outer_outline) {
-                    outColor = cornerOutline(outColor, false, coord0, f_radius, vec2(f_radius + shadow_size.x, frame_size.y + shadow_size.z - f_radius), outer_outline_width, false);
-                }
             //Bottom left corner
             } else if (coord0.y > shadow_size.z - max(f_shadow_sample_offset, outer_outline_width) && coord0.y < f_radius + shadow_size.z) {
                 start_x = (shadow_size.x - f_shadow_sample_offset)/expanded_size.x;
                 start_y = (shadow_size.z - f_shadow_sample_offset)/expanded_size.y;
 
                 outColor = shapeShadowWindow(vec2(start_x, start_y), tex, coord0, vec2(f_radius + shadow_size.x, shadow_size.z + f_radius), f_radius);
-
-                //Inner outline
-                if(draw_inner_outline) {
-                    outColor = cornerOutline(outColor, true, coord0, f_radius, vec2(f_radius + shadow_size.x, shadow_size.z + f_radius), inner_outline_width, false);
-                }
-                //Outer outline
-                if(draw_outer_outline) {
-                    outColor = cornerOutline(outColor, false, coord0, f_radius, vec2(f_radius + shadow_size.x, shadow_size.z + f_radius), outer_outline_width, false);
-                }
             //Center
             } else {
                 outColor = tex;
@@ -345,30 +339,12 @@ void main()
                 start_y = (shadow_size.z + frame_size.y + f_shadow_sample_offset)/expanded_size.y;
 
                 outColor = shapeShadowWindow(vec2(start_x, start_y), tex, coord0, vec2(shadow_size.x + frame_size.x - f_radius, frame_size.y + shadow_size.z - f_radius), f_radius);
-
-                //Inner outline
-                if(draw_inner_outline) {
-                    outColor = cornerOutline(outColor, true, coord0, f_radius, vec2(shadow_size.x + frame_size.x - f_radius, frame_size.y + shadow_size.z - f_radius), inner_outline_width, false);
-                }
-                //Outer outline
-                if(draw_outer_outline) {
-                    outColor = cornerOutline(outColor, false, coord0, f_radius, vec2(shadow_size.x + frame_size.x - f_radius, frame_size.y + shadow_size.z - f_radius), outer_outline_width, false);
-                }
             //Bottom right corner
             } else if (coord0.y > shadow_size.z - max(f_shadow_sample_offset, outer_outline_width) && coord0.y < f_radius + shadow_size.z) {
                 start_x = (shadow_size.x + frame_size.x + f_shadow_sample_offset)/expanded_size.x;
                 start_y = (shadow_size.z - f_shadow_sample_offset)/expanded_size.y;
 
                 outColor = shapeShadowWindow(vec2(start_x, start_y), tex, coord0, vec2(shadow_size.x + frame_size.x - f_radius, shadow_size.z + f_radius), f_radius);
-
-                //Inner outline
-                if(draw_inner_outline) {
-                    outColor = cornerOutline(outColor, true, coord0, f_radius, vec2(shadow_size.x + frame_size.x - f_radius, shadow_size.z + f_radius), inner_outline_width, false);
-                }
-                //Outer outline
-                if(draw_outer_outline) {
-                    outColor = cornerOutline(outColor, false, coord0, f_radius, vec2(shadow_size.x + frame_size.x - f_radius, shadow_size.z + f_radius), outer_outline_width, false);
-                }
             //Center
             } else {
                 outColor = tex;
