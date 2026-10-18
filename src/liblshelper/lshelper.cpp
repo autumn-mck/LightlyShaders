@@ -264,7 +264,8 @@ LSHelper::isManagedWindow(EffectWindow *w)
             || w->isUtility()
             || w->isDock()
             || w->isToolbar()
-            || w->isMenu())
+            || w->isMenu()
+            || w->isOutline())
         return false;
 
     //qCWarning(LSHELPER) << w->windowRole() << w->windowType() << w->windowClass();
