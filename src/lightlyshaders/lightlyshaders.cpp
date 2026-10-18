@@ -173,7 +173,7 @@ LightlyShadersEffect::reconfigure(ReconfigureFlags flags)
     effects->addRepaintFull();
 }
 
-void
+bool
 LightlyShadersEffect::paintScreen(const RenderTarget &renderTarget, const RenderViewport &viewport, int mask, const Region &deviceRegion, LogicalOutput *s)
 {
     bool set_roundness = false;
@@ -195,7 +195,7 @@ LightlyShadersEffect::paintScreen(const RenderTarget &renderTarget, const Render
         m_helper->reconfigure();
     }
 
-    effects->paintScreen(renderTarget, viewport, mask, deviceRegion, s);
+    return effects->paintScreen(renderTarget, viewport, mask, deviceRegion, s);
 }
 
 void
@@ -227,15 +227,14 @@ LightlyShadersEffect::isValidWindow(EffectWindow *w)
     return it.value().isManaged && !it.value().skipEffect;
 }
 
-void
+bool
 LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderViewport &viewport, EffectWindow *w, int mask, const Region &region, WindowPaintData &data)
 {
     RectF screen = viewport.renderRect().toRect();
 
     if (!isValidWindow(w) || (!screen.intersects(w->frameGeometry()) && !(mask & PAINT_WINDOW_TRANSFORMED)) )
     {
-        effects->drawWindow(renderTarget, viewport, w, mask, region, data);
-        return;
+        return effects->drawWindow(renderTarget, viewport, w, mask, region, data);
     }
 
     RectF geo(w->frameGeometry());
@@ -265,7 +264,7 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
     //qCWarning(LIGHTLYSHADERS) << geo_scaled.width() << geo_scaled.height();
     m_shader->setUniform(frameSizeLocation, QVector2D(geo_scaled.width(), geo_scaled.height()));
     m_shader->setUniform(expandedSizeLocation, QVector2D(exp_geo_scaled.width(), exp_geo_scaled.height()));
-    m_shader->setUniform(shadowSizeLocation, QVector3D(geo_scaled.x() - exp_geo_scaled.x(), geo_scaled.y()-exp_geo_scaled.y(), exp_geo_scaled.height() - geo_scaled.height() - geo_scaled.y() + exp_geo_scaled.y() ));
+    m_shader->setUniform(shadowSizeLocation, QVector3D(geo_scaled.x() - exp_geo_scaled.x(), geo_scaled.y()-exp_geo_scaled.y(), geo_scaled.y() - exp_geo_scaled.y() ));
     m_shader->setUniform(radiusLocation, float(m_size * scaleFactor));
     m_shader->setUniform(shadowOffsetLocation, float(m_shadowOffset * scaleFactor));
     m_shader->setUniform(innerOutlineColorLocation, QVector4D(m_innerOutlineColor.red()/255.0,m_innerOutlineColor.green()/255.0,m_innerOutlineColor.blue()/255.0,m_innerOutlineColor.alpha()/255.0));
@@ -279,9 +278,11 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
 
     glActiveTexture(GL_TEXTURE0);
 
-    OffscreenEffect::drawWindow(renderTarget, viewport, w, mask, region, data);
+    const bool ret = OffscreenEffect::drawWindow(renderTarget, viewport, w, mask, region, data);
 
     sm->popShader();
+
+    return ret;
 }
 
 RectF
