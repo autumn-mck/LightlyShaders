@@ -87,7 +87,7 @@ private:
     std::unique_ptr<LSHelper> m_helper;
 
     int m_size, m_innerOutlineWidth, m_outerOutlineWidth, m_roundness, m_shadowOffset, m_squircleRatio, m_cornersType;
-    bool m_innerOutline, m_outerOutline, m_disabledForMaximized;
+    bool m_innerOutline, m_outerOutline, m_outlinePhysicalPixels, m_disabledForMaximized;
     QColor m_innerOutlineColor, m_outerOutlineColor;
     std::unique_ptr<GLShader> m_shader;
     LSShaderLocations m_locations;

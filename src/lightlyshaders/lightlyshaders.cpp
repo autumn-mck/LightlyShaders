@@ -161,6 +161,7 @@ LightlyShadersEffect::reconfigure(ReconfigureFlags flags)
     m_outerOutlineWidth = LightlyShadersConfig::outerOutlineWidth();
     m_innerOutline = LightlyShadersConfig::innerOutline();
     m_outerOutline = LightlyShadersConfig::outerOutline();
+    m_outlinePhysicalPixels = LightlyShadersConfig::outlinePhysicalPixels();
     m_innerOutlineColor = LightlyShadersConfig::innerOutlineColor();
     m_outerOutlineColor = LightlyShadersConfig::outerOutlineColor();
     m_disabledForMaximized = LightlyShadersConfig::disabledForMaximized();
@@ -242,8 +243,14 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
     m_shader->setUniform(m_locations.shadowOffset, float(m_shadowOffset * scaleFactor));
     m_shader->setUniform(m_locations.innerOutlineColor, QVector4D(m_innerOutlineColor.red()/255.0,m_innerOutlineColor.green()/255.0,m_innerOutlineColor.blue()/255.0,m_innerOutlineColor.alpha()/255.0));
     m_shader->setUniform(m_locations.outerOutlineColor, QVector4D(m_outerOutlineColor.red()/255.0,m_outerOutlineColor.green()/255.0,m_outerOutlineColor.blue()/255.0,m_outerOutlineColor.alpha()/255.0));
-    const auto snapWidth = [scaleFactor](qreal width) {
-        return width > 0.0 ? float(std::max(1.0, std::round(width * scaleFactor))) : 0.0f;
+    const auto snapWidth = [this, scaleFactor](qreal width) {
+        if (width <= 0.0) {
+            return 0.0f;
+        }
+        if (m_outlinePhysicalPixels) {
+            return float(width);
+        }
+        return float(std::max(1.0, std::round(width * scaleFactor)));
     };
     m_shader->setUniform(m_locations.innerOutlineWidth, snapWidth(m_innerOutlineWidth));
     m_shader->setUniform(m_locations.outerOutlineWidth, snapWidth(m_outerOutlineWidth));

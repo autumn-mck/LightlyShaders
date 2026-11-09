@@ -166,6 +166,17 @@
      </item>
 
      <item>
+      <widget class="QCheckBox" name="kcfg_OutlinePhysicalPixels">
+       <property name="text">
+        <string>Outline widths in physical pixels</string>
+       </property>
+       <property name="toolTip">
+        <string>Use outline widths as physical screen pixels instead of scaling them with the display scale. Every width is reachable at fractional scales, but outlines look thinner on high-DPI screens.</string>
+       </property>
+      </widget>
+     </item>
+
+     <item>
       <widget class="QCheckBox" name="kcfg_DisabledForMaximized">
        <property name="text">
         <string>Disable for maximized windows</string>
