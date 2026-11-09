@@ -226,12 +226,9 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
         return effects->drawWindow(renderTarget, viewport, w, mask, region, data);
     }
 
-    RectF geo(w->frameGeometry());
-    RectF exp_geo(w->expandedGeometry());
-
     const qreal scaleFactor = viewport.scale();
-    const RectF geo_scaled = scale(geo, scaleFactor);
-    const RectF exp_geo_scaled = scale(exp_geo, scaleFactor);
+    const RectF geo_scaled = scale(w->frameGeometry(), scaleFactor);
+    const RectF exp_geo_scaled = scale(w->expandedGeometry(), scaleFactor);
 
     //Draw rounded corners with shadows
     ShaderManager *sm = ShaderManager::instance();
@@ -245,8 +242,11 @@ LightlyShadersEffect::drawWindow(const RenderTarget &renderTarget, const RenderV
     m_shader->setUniform(m_locations.shadowOffset, float(m_shadowOffset * scaleFactor));
     m_shader->setUniform(m_locations.innerOutlineColor, QVector4D(m_innerOutlineColor.red()/255.0,m_innerOutlineColor.green()/255.0,m_innerOutlineColor.blue()/255.0,m_innerOutlineColor.alpha()/255.0));
     m_shader->setUniform(m_locations.outerOutlineColor, QVector4D(m_outerOutlineColor.red()/255.0,m_outerOutlineColor.green()/255.0,m_outerOutlineColor.blue()/255.0,m_outerOutlineColor.alpha()/255.0));
-    m_shader->setUniform(m_locations.innerOutlineWidth, float(m_innerOutlineWidth * scaleFactor));
-    m_shader->setUniform(m_locations.outerOutlineWidth, float(m_outerOutlineWidth * scaleFactor));
+    const auto snapWidth = [scaleFactor](qreal width) {
+        return width > 0.0 ? float(std::max(1.0, std::round(width * scaleFactor))) : 0.0f;
+    };
+    m_shader->setUniform(m_locations.innerOutlineWidth, snapWidth(m_innerOutlineWidth));
+    m_shader->setUniform(m_locations.outerOutlineWidth, snapWidth(m_outerOutlineWidth));
     m_shader->setUniform(m_locations.drawInnerOutline, m_innerOutline);
     m_shader->setUniform(m_locations.drawOuterOutline, m_outerOutline);
     m_shader->setUniform(m_locations.squircleRatio, m_squircleRatio);
@@ -265,10 +265,8 @@ RectF
 LightlyShadersEffect::scale(const RectF rect, qreal scaleFactor)
 {
     return RectF(
-        rect.x()*scaleFactor,
-        rect.y()*scaleFactor,
-        rect.width()*scaleFactor,
-        rect.height()*scaleFactor
+        QPointF(std::round(rect.left()*scaleFactor), std::round(rect.top()*scaleFactor)),
+        QPointF(std::round(rect.right()*scaleFactor), std::round(rect.bottom()*scaleFactor))
     );
 }
 

@@ -196,8 +196,10 @@ void main()
     float f_shadow_sample_offset = float(shadow_sample_offset);
     float f_radius = float(radius);
 
+    bool has_shadow = any(greaterThan(abs(expanded_size - frame_size), vec2(0.5)));
+
     //Window without shadow
-    if(expanded_size == frame_size) {
+    if(!has_shadow) {
         coord0 = vec2(texcoord0.x*frame_size.x, texcoord0.y*frame_size.y);
         //Left side
         if (coord0.x < f_radius) {
@@ -230,7 +232,7 @@ void main()
                 outColor = tex;
 
                 //Outline
-                if(coord0.y > f_radius && coord0.y < frame_size.y - f_radius) {
+                if(coord0.y >= f_radius && coord0.y <= frame_size.y - f_radius) {
                     //Inner outline
                     if(draw_inner_outline) {
                         if(coord0.x >= outer_outline_width && coord0.x <= outer_outline_width+inner_outline_width) {
@@ -278,7 +280,7 @@ void main()
                 outColor = tex;
 
                 //Outline
-                if(coord0.y > f_radius && coord0.y < frame_size.y - f_radius) {
+                if(coord0.y >= f_radius && coord0.y <= frame_size.y - f_radius) {
                     //Inner outline
                     if(draw_inner_outline) {
                         if(coord0.x >= frame_size.x - inner_outline_width - outer_outline_width && coord0.x <= frame_size.x - outer_outline_width) {
@@ -300,7 +302,7 @@ void main()
             outColor = tex;
 
             //Outline
-            if(coord0.x > f_radius && coord0.x < frame_size.x - f_radius) {
+            if(coord0.x >= f_radius && coord0.x <= frame_size.x - f_radius) {
                 //Inner outline
                 if(draw_inner_outline) {
                     if(
@@ -322,7 +324,7 @@ void main()
             }
         }
     //Window with shadow
-    } else if(expanded_size != frame_size) {
+    } else {
         coord0 = vec2(texcoord0.x*expanded_size.x, texcoord0.y*expanded_size.y);
         bool in_left = coord0.x < shadow_size.x + f_radius;
         bool in_right = coord0.x > shadow_size.x + frame_size.x - f_radius;
@@ -339,7 +341,7 @@ void main()
             outColor = tex;
 
             //Outline and shadow
-            if(coord0.y > f_radius + shadow_size.z && coord0.y < shadow_size.z + frame_size.y - f_radius) {
+            if(coord0.y >= f_radius + shadow_size.z && coord0.y <= shadow_size.z + frame_size.y - f_radius) {
                 //Left shadow padding
                 if(coord0.x > shadow_size.x - f_shadow_sample_offset && coord0.x <= shadow_size.x) {
                     start_x = (shadow_size.x - f_shadow_sample_offset)/expanded_size.x;                        
@@ -367,7 +369,7 @@ void main()
             outColor = tex;
 
             //Outline and shadow
-            if(coord0.y > f_radius + shadow_size.z && coord0.y < shadow_size.z + frame_size.y - f_radius) {
+            if(coord0.y >= f_radius + shadow_size.z && coord0.y <= shadow_size.z + frame_size.y - f_radius) {
                 //Right shadow padding
                 if(coord0.x >= shadow_size.x + frame_size.x && coord0.x < shadow_size.x + frame_size.x + f_shadow_sample_offset) {
                     start_x = (shadow_size.x + frame_size.x + f_shadow_sample_offset)/expanded_size.x;
@@ -395,7 +397,7 @@ void main()
             outColor = tex;
 
             //Outline and shadow
-            if(coord0.x > f_radius + shadow_size.x && coord0.x < shadow_size.x + frame_size.x - f_radius) {
+            if(coord0.x >= f_radius + shadow_size.x && coord0.x <= shadow_size.x + frame_size.x - f_radius) {
                 //Top shadow padding
                 if(coord0.y >= frame_size.y + shadow_size.z && coord0.y < frame_size.y + shadow_size.z + f_shadow_sample_offset) {
                     start_y = (shadow_size.z + frame_size.y + f_shadow_sample_offset)/expanded_size.y;
